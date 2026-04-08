@@ -27,7 +27,7 @@ export default function AdminPage() {
       <div className="px-5 py-20">
         <div className="mx-auto max-w-sm glass rounded-3xl p-8">
           <h1 className="font-display text-3xl text-violet-50 text-center">
-            Panel de Marcela
+            Panel Ave Fénix
           </h1>
           <p className="mt-2 text-center text-sm text-violet-200/70">
             Ingresá tu contraseña local
@@ -63,9 +63,6 @@ export default function AdminPage() {
             >
               Entrar
             </button>
-            <p className="text-[11px] text-center text-violet-300/50 mt-2">
-              Pista local: <code>marcela30</code>
-            </p>
           </form>
         </div>
       </div>
@@ -103,7 +100,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               Panel
             </p>
             <h1 className="font-display text-3xl md:text-4xl text-violet-50">
-              Bienvenida, Marcela
+              Bienvenida, Ave Fénix
             </h1>
           </div>
           <button

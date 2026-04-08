@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -22,15 +23,22 @@ export function NavBar() {
           onClick={() => setOpen(false)}
           className="flex items-center gap-2.5 group"
         >
-          <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-400 to-violet-700 glow">
-            <MoonIcon className="h-5 w-5 text-violet-50" />
+          <span className="relative h-11 w-11 rounded-full overflow-hidden ring-1 ring-violet-300/30 glow shrink-0">
+            <Image
+              src="/logo.png"
+              alt="Tarot Ave Fénix"
+              fill
+              sizes="44px"
+              className="object-cover"
+              priority
+            />
           </span>
           <div className="flex flex-col leading-none">
             <span className="font-display text-xl text-violet-50 tracking-wide">
-              Marcela
+              Ave Fénix
             </span>
             <span className="text-[10px] uppercase tracking-[0.22em] text-violet-300/80">
-              Tarot &amp; Guía
+              Tarot &amp; Espiritual
             </span>
           </div>
         </Link>
@@ -97,22 +105,6 @@ export function NavBar() {
         </div>
       )}
     </header>
-  );
-}
-
-function MoonIcon({ className = "" }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="17" cy="7" r="0.8" fill="currentColor" />
-      <circle cx="19.5" cy="10" r="0.5" fill="currentColor" />
-    </svg>
   );
 }
 

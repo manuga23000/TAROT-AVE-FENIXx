@@ -1,24 +1,25 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const servicios = [
   {
-    titulo: "Lectura general",
-    desc: "Una mirada amplia sobre amor, trabajo, salud y familia.",
+    titulo: "Apertura de caminos",
+    desc: "Destrabá lo que está frenando tu energía y abrí espacio a nuevas oportunidades.",
     icon: "✦",
   },
   {
-    titulo: "Tarot del amor",
-    desc: "Vínculos, parejas, reconciliaciones y nuevos encuentros.",
+    titulo: "Amor y vínculos",
+    desc: "Claridad sobre parejas, reconciliaciones, vínculos familiares y nuevos encuentros.",
     icon: "♡",
   },
   {
-    titulo: "Trabajo y dinero",
-    desc: "Decisiones, emprendimientos y prosperidad económica.",
+    titulo: "Prosperidad y trabajo",
+    desc: "Decisiones laborales, emprendimientos y abundancia económica.",
     icon: "✧",
   },
   {
-    titulo: "Consulta express",
-    desc: "Una pregunta puntual con respuesta clara y directa.",
+    titulo: "Limpieza energética",
+    desc: "Liberá cargas, energías densas y recuperá tu equilibrio interior.",
     icon: "✺",
   },
 ];
@@ -27,12 +28,12 @@ const testimonios = [
   {
     nombre: "Laura M.",
     texto:
-      "Marcela me ayudó en uno de los momentos más difíciles. Sus palabras tienen una claridad y una calidez únicas.",
+      "Ave Fénix me ayudó en uno de los momentos más difíciles. Sus palabras tienen una claridad y una calidez únicas.",
   },
   {
     nombre: "Pablo R.",
     texto:
-      "Fui escéptico al principio. Hoy la consulto cada vez que tengo una decisión importante.",
+      "Fui escéptico al principio. Hoy consulto a Ave Fénix cada vez que tengo una decisión importante.",
   },
   {
     nombre: "Sofía T.",
@@ -50,17 +51,18 @@ export default function Home() {
           <div className="text-center md:text-left">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass text-xs uppercase tracking-[0.22em] text-violet-200">
               <span className="h-1.5 w-1.5 rounded-full bg-gold animate-twinkle" />
-              Más de 30 años de experiencia
+              Tarot &amp; Guía Espiritual
             </span>
             <h1 className="mt-6 font-display text-5xl md:text-7xl leading-[1.05] text-violet-50">
-              Las cartas <br />
-              <span className="text-shimmer italic">tienen algo</span>
-              <br /> para decirte
+              Alineá tu energía <br />
+              <span className="text-shimmer italic">y transformá</span>
+              <br /> tu vida
             </h1>
             <p className="mt-6 text-lg text-violet-100/80 max-w-md mx-auto md:mx-0 leading-relaxed">
-              Soy <strong className="text-violet-100">Marcela</strong>, tarotista con
-              tres décadas guiando a personas a encontrar respuestas, claridad y un
-              camino que se siente propio.
+              Soy <strong className="text-violet-100">Ave Fénix</strong>, tarotista
+              y guía espiritual. Te acompaño a encontrar respuestas, claridad y
+              un camino que se siente propio. <em>Lo que buscás también te
+              está buscando.</em>
             </p>
             <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
               <Link
@@ -78,7 +80,7 @@ export default function Home() {
               </Link>
             </div>
             <div className="mt-10 flex items-center gap-6 justify-center md:justify-start text-sm text-violet-200/70">
-              <Stat numero="30+" label="años de oficio" />
+              <Stat numero="Virtual" label="o presencial" />
               <div className="h-8 w-px bg-violet-300/20" />
               <Stat numero="5.000+" label="consultas" />
               <div className="h-8 w-px bg-violet-300/20" />
@@ -96,27 +98,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* SOBRE MARCELA */}
+      {/* SOBRE AVE FÉNIX */}
       <section className="px-5 py-16">
         <div className="mx-auto max-w-5xl glass rounded-3xl p-8 md:p-14">
           <div className="grid gap-8 md:grid-cols-[auto_1fr] items-center">
-            <div className="relative mx-auto h-32 w-32 md:h-40 md:w-40 rounded-full bg-gradient-to-br from-violet-300 to-violet-700 flex items-center justify-center glow">
-              <span className="font-display text-6xl text-violet-50">M</span>
+            <div className="relative mx-auto h-36 w-36 md:h-44 md:w-44 rounded-full overflow-hidden ring-1 ring-violet-300/30 glow shrink-0">
+              <Image
+                src="/logo.png"
+                alt="Tarot Ave Fénix"
+                fill
+                sizes="(min-width: 768px) 176px, 144px"
+                className="object-cover"
+              />
             </div>
             <div className="text-center md:text-left">
               <p className="text-xs uppercase tracking-[0.22em] text-violet-300/80">
-                Sobre Marcela
+                Sobre Ave Fénix
               </p>
               <h2 className="mt-2 font-display text-3xl md:text-4xl text-violet-50">
-                Una vida entera dedicada al tarot
+                Tu guía para renacer
               </h2>
               <p className="mt-4 text-violet-100/80 leading-relaxed">
-                Desde muy joven sentí un llamado distinto. Hace más de 30 años
-                que estudio, practico y acompaño a personas que llegan buscando
-                respuestas. Mi forma de leer las cartas es honesta, cuidadosa y
-                profundamente humana: no vengo a asustar ni a prometer milagros,
-                vengo a ayudarte a ver con más claridad lo que ya sabés en el
-                fondo.
+                Como el ave que renace de sus cenizas, mi trabajo busca
+                acompañarte en tus procesos de transformación. Estudio,
+                practico y guío con tarot, registros akáshicos y limpiezas
+                energéticas. Mi forma de leer es honesta, cuidadosa y
+                profundamente humana: no vengo a asustar ni a prometer
+                milagros, vengo a ayudarte a ver con más claridad lo que ya
+                sabés en el fondo.
               </p>
             </div>
           </div>

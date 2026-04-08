@@ -41,32 +41,52 @@ const KEYS = {
 
 const SERVICIOS_DEFAULT: Servicio[] = [
   {
-    id: "lectura-general",
-    nombre: "Lectura general",
+    id: "apertura-caminos",
+    nombre: "Apertura de caminos",
     duracionMin: 45,
     precio: 15000,
-    descripcion: "Una mirada amplia sobre el momento que estás atravesando: amor, trabajo, salud y familia.",
+    descripcion:
+      "Destrabá lo que está frenando tu energía y abrí espacio a nuevas oportunidades.",
   },
   {
-    id: "lectura-amor",
-    nombre: "Tarot del amor",
+    id: "amor-vinculos",
+    nombre: "Amor y vínculos",
     duracionMin: 40,
     precio: 14000,
-    descripcion: "Respuestas sobre vínculos, parejas, reconciliaciones y nuevas relaciones.",
+    descripcion:
+      "Claridad sobre parejas, reconciliaciones, vínculos familiares y nuevos encuentros.",
   },
   {
-    id: "lectura-trabajo",
-    nombre: "Trabajo y dinero",
+    id: "prosperidad-trabajo",
+    nombre: "Prosperidad y trabajo",
     duracionMin: 40,
     precio: 14000,
-    descripcion: "Decisiones laborales, emprendimientos y prosperidad económica.",
+    descripcion:
+      "Decisiones laborales, emprendimientos y abundancia económica.",
   },
   {
-    id: "consulta-express",
-    nombre: "Consulta express",
-    duracionMin: 20,
-    precio: 8000,
-    descripcion: "Una pregunta puntual con respuesta clara y directa.",
+    id: "limpieza-energetica",
+    nombre: "Limpieza energética",
+    duracionMin: 50,
+    precio: 16000,
+    descripcion:
+      "Liberá cargas, energías densas y recuperá tu equilibrio interior.",
+  },
+  {
+    id: "registros-akashicos",
+    nombre: "Registros akáshicos",
+    duracionMin: 60,
+    precio: 20000,
+    descripcion:
+      "Una lectura profunda de tu alma: propósito, aprendizajes y memoria espiritual.",
+  },
+  {
+    id: "carta-natal",
+    nombre: "Carta natal",
+    duracionMin: 75,
+    precio: 22000,
+    descripcion:
+      "Mapa astrológico personal: tu esencia, talentos y los ciclos que te marcan.",
   },
 ];
 

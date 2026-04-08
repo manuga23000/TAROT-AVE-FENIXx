@@ -17,9 +17,9 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Marcela Tarot · Lecturas con más de 30 años de experiencia",
+  title: "Tarot Ave Fénix · Lecturas espirituales",
   description:
-    "Lecturas de tarot personalizadas con Marcela. Más de 30 años guiando con sabiduría, intuición y compromiso. Reservá tu turno online.",
+    "Lecturas de tarot y guía espiritual con Ave Fénix. Alineá tu energía y transformá tu vida. Modalidad virtual o presencial. Reservá tu turno online.",
 };
 
 export const viewport: Viewport = {
