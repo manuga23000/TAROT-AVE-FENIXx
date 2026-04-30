@@ -46,6 +46,11 @@ export default function TurnosPage() {
 
   const servicioSel = servicios.find((s) => s.id === servicioId);
 
+  const modalidadesDisponibles = useMemo(() => {
+    if (!config) return modalidades;
+    return modalidades.filter((m) => !(config.modalidadesBloqueadas || []).includes(m.id));
+  }, [config]);
+
   const slotsDisponibles = useMemo(() => {
     if (!fecha || !config) return [];
     if (!fechaEsValida(fecha, config)) return [];
@@ -55,13 +60,13 @@ export default function TurnosPage() {
     return generarSlots(fecha, config, ocupados);
   }, [fecha, config, turnos]);
 
-  // Próximos 14 días sugeridos
   const diasSugeridos = useMemo(() => {
     if (!config) return [];
+    const diasMax = config.diasDisponibilidad || 14;
     const dias: { fecha: string; nombreDia: string; numero: number; mes: string }[] = [];
     const hoy = new Date();
     let i = 0;
-    while (dias.length < 14 && i < 60) {
+    while (dias.length < diasMax && i < 90) {
       const d = new Date(hoy);
       d.setDate(hoy.getDate() + i);
       const yyyy = d.getFullYear();
@@ -71,9 +76,9 @@ export default function TurnosPage() {
       if (fechaEsValida(fechaStr, config)) {
         dias.push({
           fecha: fechaStr,
-          nombreDia: d.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", ""),
+          nombreDia: d.toLocaleDateString("es", { weekday: "short" }).replace(".", ""),
           numero: d.getDate(),
-          mes: d.toLocaleDateString("es-AR", { month: "short" }).replace(".", ""),
+          mes: d.toLocaleDateString("es", { month: "short" }).replace(".", ""),
         });
       }
       i++;
@@ -102,7 +107,42 @@ export default function TurnosPage() {
   }
 
   if (confirmado) {
-    return <Confirmacion turno={confirmado} servicio={servicios.find((s) => s.id === confirmado.servicioId)} />;
+    return (
+      <Confirmacion
+        turno={confirmado}
+        servicio={servicios.find((s) => s.id === confirmado.servicioId)}
+      />
+    );
+  }
+
+  if (config?.modoVacaciones) {
+    return (
+      <div className="px-5 py-20">
+        <div className="mx-auto max-w-xl glass rounded-3xl p-10 md:p-14 text-center relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-60 h-60 bg-violet-500/20 rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-fuchsia-500/20 rounded-full blur-3xl" />
+          <div className="relative">
+            <div className="text-6xl mb-6">✦</div>
+            <h1 className="font-display text-4xl md:text-5xl text-violet-50">
+              Estamos en descanso
+            </h1>
+            <p className="mt-4 text-violet-200/80 text-lg leading-relaxed">
+              En este momento no estoy tomando turnos. ¡Pero vuelvo pronto!
+              Mientras tanto, podés escribirme por WhatsApp para cualquier
+              consulta.
+            </p>
+            <a
+              href="https://wa.me/5493364034155"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 inline-flex items-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 text-white font-medium shadow-lg shadow-emerald-500/30"
+            >
+              Escribime por WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -139,13 +179,23 @@ export default function TurnosPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="font-display text-2xl text-violet-50">{s.nombre}</h3>
-                    <p className="mt-1 text-sm text-violet-200/75">{s.descripcion}</p>
-                    <p className="mt-2 text-xs text-violet-300/70">{s.duracionMin} minutos</p>
+                    <h3 className="font-display text-2xl text-violet-50">
+                      {s.nombre}
+                    </h3>
+                    <p className="mt-1 text-sm text-violet-200/75">
+                      {s.descripcion}
+                    </p>
+                    <p className="mt-2 text-xs text-violet-300/70">
+                      {s.duracionMin} minutos
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className="text-gold font-display text-xl">{formatPrecio(s.precio)}</div>
-                    <div className="text-[11px] uppercase tracking-wider text-violet-300/60 mt-1">elegir →</div>
+                    <div className="text-gold font-display text-xl">
+                      {formatPrecio(s.precio)}
+                    </div>
+                    <div className="text-[11px] uppercase tracking-wider text-violet-300/60 mt-1">
+                      elegir →
+                    </div>
                   </div>
                 </div>
               </button>
@@ -156,32 +206,46 @@ export default function TurnosPage() {
         {/* PASO 2 - modalidad */}
         {step === 2 && (
           <section className="mt-8">
-            <h2 className="font-display text-2xl text-violet-50 mb-4">¿Cómo querés tu lectura?</h2>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {modalidades.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setModalidad(m.id)}
-                  className={`glass rounded-2xl p-5 text-center transition-all ${
-                    modalidad === m.id
-                      ? "bg-violet-500/20 ring-2 ring-violet-400"
-                      : "hover:bg-violet-500/10"
-                  }`}
-                >
-                  <div className="text-3xl text-gold">{m.icon}</div>
-                  <div className="mt-2 text-violet-50">{m.label}</div>
-                </button>
-              ))}
-            </div>
-            <NavBtns onBack={() => setStep(1)} onNext={() => setStep(3)} />
+            <h2 className="font-display text-2xl text-violet-50 mb-4">
+              ¿Cómo querés tu lectura?
+            </h2>
+            {modalidadesDisponibles.length === 0 ? (
+              <p className="text-violet-300/70 italic glass rounded-2xl p-6 text-center">
+                No hay modalidades disponibles en este momento.
+              </p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {modalidadesDisponibles.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setModalidad(m.id)}
+                    className={`glass rounded-2xl p-5 text-center transition-all ${
+                      modalidad === m.id
+                        ? "bg-violet-500/20 ring-2 ring-violet-400"
+                        : "hover:bg-violet-500/10"
+                    }`}
+                  >
+                    <div className="text-3xl text-gold">{m.icon}</div>
+                    <div className="mt-2 text-violet-50">{m.label}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            <NavBtns
+              onBack={() => setStep(1)}
+              onNext={() => modalidadesDisponibles.length > 0 && setStep(3)}
+              nextDisabled={modalidadesDisponibles.length === 0}
+            />
           </section>
         )}
 
         {/* PASO 3 - fecha y hora */}
         {step === 3 && (
           <section className="mt-8">
-            <h2 className="font-display text-2xl text-violet-50 mb-4">Elegí día y horario</h2>
+            <h2 className="font-display text-2xl text-violet-50 mb-4">
+              Elegí día y horario
+            </h2>
             <div className="flex gap-2 overflow-x-auto pb-3 -mx-5 px-5 snap-x">
               {diasSugeridos.map((d) => {
                 const active = fecha === d.fecha;
@@ -203,7 +267,9 @@ export default function TurnosPage() {
                       {d.nombreDia}
                     </div>
                     <div className="text-2xl font-display mt-1">{d.numero}</div>
-                    <div className="text-[10px] uppercase opacity-75">{d.mes}</div>
+                    <div className="text-[10px] uppercase opacity-75">
+                      {d.mes}
+                    </div>
                   </button>
                 );
               })}
@@ -212,7 +278,8 @@ export default function TurnosPage() {
             {fecha && (
               <div className="mt-6">
                 <p className="text-sm text-violet-300/80 mb-3">
-                  Horarios disponibles para <span className="text-violet-100">{formatFecha(fecha)}</span>
+                  Horarios disponibles para{" "}
+                  <span className="text-violet-100">{formatFecha(fecha)}</span>
                 </p>
                 {slotsDisponibles.length === 0 ? (
                   <p className="text-violet-300/70 italic">
@@ -253,7 +320,9 @@ export default function TurnosPage() {
         {/* PASO 4 - datos */}
         {step === 4 && (
           <section className="mt-8">
-            <h2 className="font-display text-2xl text-violet-50 mb-4">Tus datos</h2>
+            <h2 className="font-display text-2xl text-violet-50 mb-4">
+              Tus datos
+            </h2>
             <div className="glass rounded-3xl p-6 md:p-8 space-y-4">
               <Field label="Nombre completo *">
                 <input
@@ -271,7 +340,7 @@ export default function TurnosPage() {
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
                     className={inputCls}
-                    placeholder="+54 9 11 ..."
+                    placeholder="Tu número de WhatsApp"
                   />
                 </Field>
                 <Field label="Email">
@@ -294,9 +363,10 @@ export default function TurnosPage() {
                 />
               </Field>
 
-              {/* Resumen */}
               <div className="mt-2 rounded-2xl bg-violet-900/40 border border-violet-300/15 p-4 text-sm space-y-1">
-                <p className="text-violet-300/70 uppercase text-[10px] tracking-wider">Resumen</p>
+                <p className="text-violet-300/70 uppercase text-[10px] tracking-wider">
+                  Resumen
+                </p>
                 <p className="text-violet-100">
                   <strong>{servicioSel?.nombre}</strong> ·{" "}
                   {modalidades.find((m) => m.id === modalidad)?.label}
@@ -330,7 +400,13 @@ export default function TurnosPage() {
 const inputCls =
   "w-full rounded-2xl bg-violet-950/60 border border-violet-300/20 px-4 py-3 text-violet-50 placeholder:text-violet-300/40 focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-500/30 transition";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="block text-xs uppercase tracking-wider text-violet-300/80 mb-1.5">
@@ -356,13 +432,15 @@ function Stepper({ step }: { step: number }) {
                 active
                   ? "bg-gradient-to-br from-violet-400 to-fuchsia-500 text-white shadow-lg shadow-violet-500/40"
                   : done
-                  ? "bg-violet-500/40 text-violet-50"
-                  : "bg-violet-950/60 border border-violet-300/20 text-violet-300/60"
+                    ? "bg-violet-500/40 text-violet-50"
+                    : "bg-violet-950/60 border border-violet-300/20 text-violet-300/60"
               }`}
             >
               {done ? "✓" : n}
             </div>
-            <span className={`mt-1.5 text-[10px] uppercase tracking-wider ${active ? "text-violet-100" : "text-violet-300/60"}`}>
+            <span
+              className={`mt-1.5 text-[10px] uppercase tracking-wider ${active ? "text-violet-100" : "text-violet-300/60"}`}
+            >
               {label}
             </span>
           </li>
@@ -404,7 +482,13 @@ function NavBtns({
   );
 }
 
-function Confirmacion({ turno, servicio }: { turno: Turno; servicio?: Servicio }) {
+function Confirmacion({
+  turno,
+  servicio,
+}: {
+  turno: Turno;
+  servicio?: Servicio;
+}) {
   return (
     <div className="px-5 py-16">
       <div className="mx-auto max-w-xl glass rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
@@ -413,7 +497,9 @@ function Confirmacion({ turno, servicio }: { turno: Turno; servicio?: Servicio }
           <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-violet-400 to-fuchsia-500 flex items-center justify-center text-3xl text-white shadow-lg shadow-violet-500/40">
             ✓
           </div>
-          <h1 className="mt-6 font-display text-4xl text-violet-50">¡Turno reservado!</h1>
+          <h1 className="mt-6 font-display text-4xl text-violet-50">
+            ¡Turno reservado!
+          </h1>
           <p className="mt-3 text-violet-200/80">
             Gracias {turno.nombre.split(" ")[0]}. Te esperamos.
           </p>
@@ -422,7 +508,10 @@ function Confirmacion({ turno, servicio }: { turno: Turno; servicio?: Servicio }
             <Row label="Fecha" value={formatFecha(turno.fecha)} />
             <Row label="Hora" value={turno.hora + " hs"} />
             <Row label="Modalidad" value={turno.modalidad} />
-            <Row label="Código" value={turno.id.slice(0, 8).toUpperCase()} />
+            <Row
+              label="Código"
+              value={turno.id.slice(0, 8).toUpperCase()}
+            />
           </div>
           <Link
             href="/"
@@ -439,7 +528,9 @@ function Confirmacion({ turno, servicio }: { turno: Turno; servicio?: Servicio }
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-violet-300/70 uppercase text-[10px] tracking-wider">{label}</span>
+      <span className="text-violet-300/70 uppercase text-[10px] tracking-wider">
+        {label}
+      </span>
       <span className="text-violet-50 capitalize">{value}</span>
     </div>
   );

@@ -7,10 +7,10 @@ export function Footer() {
         <div>
           <p className="font-display text-2xl text-violet-50">Tarot Ave Fénix</p>
           <p className="mt-2 text-sm text-violet-200/70 max-w-xs italic">
-            “Lo que buscás también te está buscando.”
+            &ldquo;Lo que buscás también te está buscando.&rdquo;
           </p>
           <p className="mt-3 text-sm text-violet-200/70 max-w-xs">
-            Lecturas y guía espiritual en modalidad virtual o presencial.
+            Lecturas y guía espiritual con Marce. Modalidad virtual o presencial.
           </p>
         </div>
         <div>
@@ -18,7 +18,6 @@ export function Footer() {
           <ul className="mt-3 space-y-2 text-sm text-violet-100/90">
             <li><Link href="/" className="hover:text-violet-300">Inicio</Link></li>
             <li><Link href="/turnos" className="hover:text-violet-300">Reservar turno</Link></li>
-            <li><Link href="/admin" className="hover:text-violet-300">Panel admin</Link></li>
           </ul>
         </div>
         <div>
@@ -31,7 +30,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="hover:text-violet-300"
               >
-                WhatsApp: +54 3364034155
+                WhatsApp
               </a>
             </li>
             <li>
@@ -44,7 +43,6 @@ export function Footer() {
                 Instagram: @tarot.avefenix
               </a>
             </li>
-            <li>Modalidad virtual o presencial</li>
           </ul>
         </div>
       </div>

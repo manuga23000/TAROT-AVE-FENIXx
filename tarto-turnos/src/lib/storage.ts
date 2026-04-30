@@ -16,20 +16,24 @@ export type Turno = {
   telefono: string;
   email: string;
   servicioId: string;
-  fecha: string; // YYYY-MM-DD
-  hora: string; // HH:mm
+  fecha: string;
+  hora: string;
   modalidad: "presencial" | "video" | "telefono";
   consulta: string;
   estado: TurnoEstado;
-  creadoEn: string; // ISO
+  creadoEn: string;
 };
 
 export type Config = {
-  diasLaborables: number[]; // 0=domingo .. 6=sabado
-  horaInicio: string; // HH:mm
-  horaFin: string; // HH:mm
+  diasLaborables: number[];
+  horaInicio: string;
+  horaFin: string;
   intervaloMin: number;
-  diasBloqueados: string[]; // YYYY-MM-DD
+  diasBloqueados: string[];
+  diasDisponibilidad: number;
+  modoVacaciones: boolean;
+  modalidadesBloqueadas: string[];
+  horasBloqueadas: string[];
 };
 
 const KEYS = {
@@ -91,11 +95,15 @@ const SERVICIOS_DEFAULT: Servicio[] = [
 ];
 
 const CONFIG_DEFAULT: Config = {
-  diasLaborables: [1, 2, 3, 4, 5, 6],
-  horaInicio: "10:00",
-  horaFin: "20:00",
+  diasLaborables: [1, 2, 3, 4, 5],
+  horaInicio: "08:00",
+  horaFin: "01:00",
   intervaloMin: 60,
   diasBloqueados: [],
+  diasDisponibilidad: 14,
+  modoVacaciones: false,
+  modalidadesBloqueadas: [],
+  horasBloqueadas: [],
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -116,7 +124,6 @@ function write<T>(key: string, value: T) {
 }
 
 export const storage = {
-  // Servicios
   getServicios(): Servicio[] {
     return read<Servicio[]>(KEYS.servicios, SERVICIOS_DEFAULT);
   },
@@ -127,15 +134,14 @@ export const storage = {
     write(KEYS.servicios, SERVICIOS_DEFAULT);
   },
 
-  // Config
   getConfig(): Config {
-    return read<Config>(KEYS.config, CONFIG_DEFAULT);
+    const saved = read<Partial<Config>>(KEYS.config, {});
+    return { ...CONFIG_DEFAULT, ...saved };
   },
   setConfig(c: Config) {
     write(KEYS.config, c);
   },
 
-  // Turnos
   getTurnos(): Turno[] {
     return read<Turno[]>(KEYS.turnos, []);
   },
@@ -164,7 +170,6 @@ export const storage = {
     write(KEYS.turnos, []);
   },
 
-  // Auth (local password — solo para uso local)
   isAuthed(): boolean {
     return read<boolean>(KEYS.auth, false);
   },
@@ -180,30 +185,54 @@ export const storage = {
   },
 };
 
-export function generarSlots(fecha: string, config: Config, ocupados: string[]): string[] {
-  const [hi, mi] = config.horaInicio.split(":").map(Number);
-  const [hf, mf] = config.horaFin.split(":").map(Number);
+function parseMinutes(horaInicio: string, horaFin: string) {
+  const [hi, mi] = horaInicio.split(":").map(Number);
+  const [hf, mf] = horaFin.split(":").map(Number);
   const start = hi * 60 + mi;
-  const end = hf * 60 + mf;
+  let end = hf * 60 + mf;
+  if (end <= start) end += 24 * 60;
+  return { start, end };
+}
+
+export function generarSlots(fecha: string, config: Config, ocupados: string[]): string[] {
+  const { start, end } = parseMinutes(config.horaInicio, config.horaFin);
   const slots: string[] = [];
+
   for (let m = start; m + config.intervaloMin <= end + 1; m += config.intervaloMin) {
-    const hh = String(Math.floor(m / 60)).padStart(2, "0");
-    const mm = String(m % 60).padStart(2, "0");
+    const actualMin = m % (24 * 60);
+    const hh = String(Math.floor(actualMin / 60)).padStart(2, "0");
+    const mm = String(actualMin % 60).padStart(2, "0");
     const slot = `${hh}:${mm}`;
-    if (!ocupados.includes(slot)) slots.push(slot);
+    const slotKey = `${fecha}|${slot}`;
+    if (!ocupados.includes(slot) && !(config.horasBloqueadas || []).includes(slotKey)) {
+      slots.push(slot);
+    }
   }
-  // Si la fecha es hoy, ocultar los pasados
+
   const hoy = new Date();
-  const yyyy = hoy.getFullYear();
-  const mmHoy = String(hoy.getMonth() + 1).padStart(2, "0");
-  const ddHoy = String(hoy.getDate()).padStart(2, "0");
-  const hoyStr = `${yyyy}-${mmHoy}-${ddHoy}`;
+  const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}-${String(hoy.getDate()).padStart(2, "0")}`;
   if (fecha === hoyStr) {
     const minsAhora = hoy.getHours() * 60 + hoy.getMinutes();
+    const isOvernight = end > 24 * 60;
     return slots.filter((s) => {
-      const [h, m] = s.split(":").map(Number);
-      return h * 60 + m > minsAhora;
+      const [h, mn] = s.split(":").map(Number);
+      const slotMins = h * 60 + mn;
+      if (isOvernight && slotMins < start) return true;
+      return slotMins > minsAhora;
     });
+  }
+  return slots;
+}
+
+export function generarTodosSlots(config: Config): string[] {
+  const { start, end } = parseMinutes(config.horaInicio, config.horaFin);
+  const slots: string[] = [];
+
+  for (let m = start; m + config.intervaloMin <= end + 1; m += config.intervaloMin) {
+    const actualMin = m % (24 * 60);
+    const hh = String(Math.floor(actualMin / 60)).padStart(2, "0");
+    const mm = String(actualMin % 60).padStart(2, "0");
+    slots.push(`${hh}:${mm}`);
   }
   return slots;
 }
@@ -216,19 +245,14 @@ export function fechaEsValida(fecha: string, config: Config): boolean {
 }
 
 export function formatPrecio(n: number): string {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(n);
+  return `$${n.toLocaleString("es")}`;
 }
 
 export function formatFecha(fecha: string): string {
   const d = new Date(fecha + "T00:00:00");
-  return d.toLocaleDateString("es-AR", {
+  return d.toLocaleDateString("es", {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
   });
 }
