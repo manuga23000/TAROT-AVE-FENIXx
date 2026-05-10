@@ -9,7 +9,6 @@ import { useState } from "react";
 const links = [
   { href: "/", label: "Inicio" },
   { href: "/turnos", label: "Reservar turno" },
-  { href: "/admin", label: "Admin" },
 ];
 
 export function NavBar() {

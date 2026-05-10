@@ -86,7 +86,7 @@ function LoginForm() {
         <p className="mt-2 text-center text-sm text-violet-200/70">
           {useFirebase ? "Ingresá con tu cuenta" : "Ingresá tu contraseña"}
         </p>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           {useFirebase && (
             <input
               type="email"
@@ -115,7 +115,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full px-6 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium shadow-lg shadow-violet-500/30 text-base disabled:opacity-50"
+            className="mt-2 w-full px-6 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium shadow-lg shadow-violet-500/30 text-base disabled:opacity-50"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>
@@ -271,7 +271,7 @@ function TurnosTab({
         + Agregar turno
       </button>
 
-      <div className="flex flex-col gap-3 mb-4">
+      <div className="flex flex-col gap-4 mb-5">
         <input
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
@@ -456,7 +456,7 @@ function AgregarTurnoModal({
 
   return (
     <Modal onClose={onClose} title="Agregar turno">
-      <div className="space-y-4">
+      <div className="space-y-5">
         <input
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
@@ -482,7 +482,7 @@ function AgregarTurnoModal({
           ))}
         </select>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2.5">
           {(["presencial", "video", "telefono"] as const).map((m) => (
             <button
               key={m}
@@ -510,7 +510,7 @@ function AgregarTurnoModal({
         />
 
         {fecha && slotsDisponibles.length > 0 && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2.5">
             {slotsDisponibles.map((s) => (
               <button
                 key={s}
@@ -807,7 +807,7 @@ function ServicioModal({
       onClose={onClose}
       title={servicio.nombre ? "Editar lectura" : "Nueva lectura"}
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
         <input
           value={s.nombre}
           onChange={(e) => setS({ ...s, nombre: e.target.value })}
@@ -821,7 +821,7 @@ function ServicioModal({
           rows={3}
           className={inputCls + " resize-none"}
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <label className="block">
             <span className="text-xs uppercase text-violet-300/80 mb-1 block">
               Duración (min)
@@ -951,7 +951,7 @@ function ConfigTab({ config }: { config: Config }) {
       </Card>
 
       <Card title="Días de disponibilidad" subtitle="Cuántos días a futuro pueden reservar">
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2.5 flex-wrap">
           {diasDisponibilidadOpciones.map((d) => {
             const active = c.diasDisponibilidad === d;
             return (
@@ -972,7 +972,7 @@ function ConfigTab({ config }: { config: Config }) {
       </Card>
 
       <Card title="Días laborables">
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2.5 flex-wrap">
           {dias.map((d, i) => {
             const active = c.diasLaborables.includes(i);
             return (
@@ -993,7 +993,7 @@ function ConfigTab({ config }: { config: Config }) {
       </Card>
 
       <Card title="Horarios">
-        <div className="space-y-3">
+        <div className="space-y-4">
           <TimeField
             label="Hora inicio"
             value={c.horaInicio}
@@ -1061,7 +1061,7 @@ function ConfigTab({ config }: { config: Config }) {
       </Card>
 
       <Card title="Días bloqueados" subtitle="Bloqueá días específicos">
-        <div className="flex gap-2">
+        <div className="flex gap-2.5">
           <input
             type="date"
             value={diaBloqueo}
@@ -1120,7 +1120,7 @@ function ConfigTab({ config }: { config: Config }) {
             <p className="text-sm text-violet-300/80 mb-2">
               Tocá para bloquear/desbloquear:
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2.5">
               {slotsDelDia.map((slot) => {
                 const key = `${diaSlotBloqueo}|${slot}`;
                 const bloqueado = (c.horasBloqueadas || []).includes(key);

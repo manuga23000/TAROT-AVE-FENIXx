@@ -15,6 +15,7 @@ import {
   formatPrecio,
   generarSlots,
 } from "@/lib/utils";
+import { notificarNuevoTurno } from "@/lib/notify";
 import type { Modalidad, Servicio, Turno } from "@/lib/types";
 
 const modalidades: { id: Modalidad; label: string; icon: string }[] = [
@@ -106,6 +107,7 @@ export default function TurnosPage() {
         modalidad,
         consulta: consulta.trim(),
       });
+      notificarNuevoTurno(nuevo, servicioSel);
       setConfirmado(nuevo);
     } catch (e) {
       setError("No se pudo registrar el turno. Intentá de nuevo.");
@@ -326,7 +328,7 @@ export default function TurnosPage() {
               <h2 className="font-display text-2xl text-violet-50 mb-4">
                 Tus datos
               </h2>
-              <div className="glass rounded-3xl p-6 md:p-8 space-y-4">
+              <div className="glass rounded-3xl p-6 md:p-8 space-y-5">
                 <Field label="Nombre completo *">
                   <input
                     type="text"
@@ -336,7 +338,7 @@ export default function TurnosPage() {
                     placeholder="Tu nombre"
                   />
                 </Field>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid md:grid-cols-2 gap-5">
                   <Field label="Teléfono / WhatsApp *">
                     <input
                       type="tel"

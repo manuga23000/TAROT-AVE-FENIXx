@@ -125,7 +125,7 @@ export default function Home() {
             >
               <Stat numero="Virtual" label="o presencial" />
               <div className="h-8 w-px bg-violet-300/20" />
-              <Stat numero="Años" label="de experiencia" />
+              <Stat numero="31" label="años de experiencia" />
               <div className="h-8 w-px bg-violet-300/20" />
               <Stat numero="100%" label="confidencial" />
             </motion.div>
@@ -135,7 +135,7 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.85, rotate: -6 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-            className="relative mx-auto md:mx-0 w-full max-w-sm"
+            className="relative mx-auto md:mx-0 w-full max-w-sm hidden md:block"
           >
             <div className="absolute -inset-8 bg-violet-500/20 blur-3xl rounded-full" />
             <div className="relative animate-float">
