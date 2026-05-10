@@ -5,7 +5,9 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(mv:*)",
       "Bash(npx next *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npm ls *)",
+      "Bash(npm install *)"
     ]
   }
 }

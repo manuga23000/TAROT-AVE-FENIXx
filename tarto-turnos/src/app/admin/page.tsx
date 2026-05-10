@@ -1,18 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import {
-  storage,
-  generarSlots,
-  generarTodosSlots,
+  FIREBASE_MODE,
+  deleteTurno,
+  loginAdmin,
+  logoutAdmin,
+  setConfig,
+  setServicios,
+  updateTurno,
+  useAuthState,
+  useConfig,
+  useServicios,
+  useTurnos,
+  addTurno,
+} from "@/lib/store";
+import {
   fechaEsValida,
   formatFecha,
   formatPrecio,
-  type Turno,
-  type Servicio,
-  type Config,
-  type TurnoEstado,
-} from "@/lib/storage";
+  generarSlots,
+  generarTodosSlots,
+} from "@/lib/utils";
+import type {
+  Config,
+  Modalidad,
+  Servicio,
+  Turno,
+  TurnoEstado,
+} from "@/lib/types";
 
 type Tab = "turnos" | "servicios" | "config" | "stats";
 
@@ -20,95 +37,108 @@ const inputCls =
   "w-full rounded-2xl bg-violet-950/60 border border-violet-300/20 px-4 py-3 text-violet-50 placeholder:text-violet-300/40 focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-500/30 transition text-base";
 
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(false);
-  const [pwd, setPwd] = useState("");
-  const [pwdError, setPwdError] = useState("");
+  const { user, ready } = useAuthState();
 
-  useEffect(() => {
-    setAuthed(storage.isAuthed());
-  }, []);
+  if (!ready) return <AdminLoader />;
+  if (!user) return <LoginForm />;
+  return <AdminPanel />;
+}
 
-  if (!authed) {
-    return (
-      <div className="px-5 py-20">
-        <div className="mx-auto max-w-sm glass rounded-3xl p-8">
-          <h1 className="font-display text-3xl text-violet-50 text-center">
-            Panel Ave Fénix
-          </h1>
-          <p className="mt-2 text-center text-sm text-violet-200/70">
-            Ingresá tu contraseña
-          </p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (storage.login(pwd)) {
-                setAuthed(true);
-                setPwdError("");
-              } else {
-                setPwdError("Contraseña incorrecta");
-              }
-            }}
-            className="mt-6 space-y-3"
-          >
-            <input
-              type="password"
-              autoFocus
-              value={pwd}
-              onChange={(e) => setPwd(e.target.value)}
-              className={inputCls}
-              placeholder="••••••••"
-            />
-            {pwdError && (
-              <p className="text-rose-300 text-sm bg-rose-500/10 border border-rose-400/30 rounded-xl p-2.5">
-                {pwdError}
-              </p>
-            )}
-            <button
-              type="submit"
-              className="w-full px-6 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium shadow-lg shadow-violet-500/30 text-base"
-            >
-              Entrar
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
+function AdminLoader() {
   return (
-    <AdminPanel
-      onLogout={() => {
-        storage.logout();
-        setAuthed(false);
-        setPwd("");
-      }}
-    />
+    <div className="px-5 py-32 flex items-center justify-center">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+        className="h-12 w-12 rounded-full border-2 border-violet-300/20 border-t-violet-300"
+      />
+    </div>
   );
 }
 
-function AdminPanel({ onLogout }: { onLogout: () => void }) {
-  const [tab, setTab] = useState<Tab>("turnos");
-  const [turnos, setTurnos] = useState<Turno[]>([]);
-  const [servicios, setServicios] = useState<Servicio[]>([]);
-  const [config, setConfig] = useState<Config>(storage.getConfig());
+function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const useFirebase = FIREBASE_MODE === "firebase";
 
-  function refresh() {
-    setTurnos(storage.getTurnos());
-    setServicios(storage.getServicios());
-    setConfig(storage.getConfig());
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setErr("");
+    const result = await loginAdmin(useFirebase ? email : pwd, useFirebase ? pwd : undefined);
+    if (result) setErr(result);
+    setLoading(false);
   }
 
-  useEffect(() => {
-    refresh();
-    const onChange = () => refresh();
-    window.addEventListener("marcela:storage", onChange);
-    return () => window.removeEventListener("marcela:storage", onChange);
-  }, []);
+  return (
+    <div className="px-5 py-20">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mx-auto max-w-sm glass rounded-3xl p-8"
+      >
+        <h1 className="font-display text-3xl text-violet-50 text-center">
+          Panel Ave Fénix
+        </h1>
+        <p className="mt-2 text-center text-sm text-violet-200/70">
+          {useFirebase ? "Ingresá con tu cuenta" : "Ingresá tu contraseña"}
+        </p>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+          {useFirebase && (
+            <input
+              type="email"
+              autoFocus
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={inputCls}
+              placeholder="email@ejemplo.com"
+            />
+          )}
+          <input
+            type="password"
+            autoFocus={!useFirebase}
+            required
+            value={pwd}
+            onChange={(e) => setPwd(e.target.value)}
+            className={inputCls}
+            placeholder="••••••••"
+          />
+          {err && (
+            <p className="text-rose-300 text-sm bg-rose-500/10 border border-rose-400/30 rounded-xl p-2.5">
+              {err}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-6 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium shadow-lg shadow-violet-500/30 text-base disabled:opacity-50"
+          >
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </motion.div>
+    </div>
+  );
+}
+
+function AdminPanel() {
+  const [tab, setTab] = useState<Tab>("turnos");
+  const { data: turnos } = useTurnos();
+  const { data: servicios } = useServicios();
+  const { data: config } = useConfig();
 
   return (
     <div className="px-4 py-6 md:py-10">
       <div className="mx-auto max-w-6xl">
-        <header className="flex items-center justify-between gap-4 mb-5">
+        <motion.header
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between gap-4 mb-5"
+        >
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-violet-300/80">
               Panel
@@ -118,26 +148,33 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             </h1>
           </div>
           <button
-            onClick={onLogout}
+            onClick={() => logoutAdmin()}
             className="px-4 py-2.5 text-sm rounded-full glass text-violet-100 hover:bg-violet-500/10"
           >
             Salir
           </button>
-        </header>
+        </motion.header>
 
-        {config.modoVacaciones && (
-          <div className="mb-4 rounded-2xl bg-amber-500/15 border border-amber-400/30 p-4 flex items-center gap-3">
-            <span className="text-2xl">✦</span>
-            <div>
-              <p className="text-amber-200 font-medium text-sm">
-                Modo vacaciones activado
-              </p>
-              <p className="text-amber-200/70 text-xs">
-                Los clientes no pueden reservar turnos
-              </p>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {config.modoVacaciones && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 rounded-2xl bg-amber-500/15 border border-amber-400/30 p-4 flex items-center gap-3"
+            >
+              <span className="text-2xl">✦</span>
+              <div>
+                <p className="text-amber-200 font-medium text-sm">
+                  Modo vacaciones activado
+                </p>
+                <p className="text-amber-200/70 text-xs">
+                  Los clientes no pueden reservar turnos
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-2">
           {(
@@ -153,54 +190,60 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               <button
                 key={id}
                 onClick={() => setTab(id)}
-                className={`shrink-0 px-5 py-3 rounded-full text-sm font-medium transition-all ${
-                  active
-                    ? "bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white shadow-lg shadow-violet-500/30"
-                    : "glass text-violet-100 hover:bg-violet-500/10"
+                className={`relative shrink-0 px-5 py-3 rounded-full text-sm font-medium ${
+                  active ? "text-white" : "glass text-violet-100 hover:bg-violet-500/10"
                 }`}
               >
-                {label}
+                {active && (
+                  <motion.span
+                    layoutId="admin-tab"
+                    className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 shadow-lg shadow-violet-500/30"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className="relative">{label}</span>
               </button>
             );
           })}
         </div>
 
         <div className="mt-5">
-          {tab === "turnos" && (
-            <TurnosTab
-              turnos={turnos}
-              servicios={servicios}
-              config={config}
-              onChange={refresh}
-            />
-          )}
-          {tab === "stats" && (
-            <StatsTab turnos={turnos} servicios={servicios} />
-          )}
-          {tab === "servicios" && (
-            <ServiciosTab servicios={servicios} onChange={refresh} />
-          )}
-          {tab === "config" && (
-            <ConfigTab config={config} onChange={refresh} />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {tab === "turnos" && (
+                <TurnosTab
+                  turnos={turnos}
+                  servicios={servicios}
+                  config={config}
+                />
+              )}
+              {tab === "stats" && (
+                <StatsTab turnos={turnos} servicios={servicios} />
+              )}
+              {tab === "servicios" && <ServiciosTab servicios={servicios} />}
+              {tab === "config" && <ConfigTab config={config} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </div>
   );
 }
 
-/* ========== TURNOS ========== */
-
 function TurnosTab({
   turnos,
   servicios,
   config,
-  onChange,
 }: {
   turnos: Turno[];
   servicios: Servicio[];
   config: Config;
-  onChange: () => void;
 }) {
   const [filtro, setFiltro] = useState<TurnoEstado | "todos">("todos");
   const [busqueda, setBusqueda] = useState("");
@@ -218,17 +261,6 @@ function TurnosTab({
           : true,
       );
   }, [turnos, filtro, busqueda]);
-
-  function cambiarEstado(id: string, estado: TurnoEstado) {
-    storage.updateTurno(id, { estado });
-    onChange();
-  }
-  function eliminar(id: string) {
-    if (confirm("¿Eliminar este turno?")) {
-      storage.deleteTurno(id);
-      onChange();
-    }
-  }
 
   return (
     <div>
@@ -248,9 +280,7 @@ function TurnosTab({
         />
         <select
           value={filtro}
-          onChange={(e) =>
-            setFiltro(e.target.value as TurnoEstado | "todos")
-          }
+          onChange={(e) => setFiltro(e.target.value as TurnoEstado | "todos")}
           className={inputCls}
         >
           <option value="todos">Todos los estados</option>
@@ -266,11 +296,24 @@ function TurnosTab({
           No hay turnos que mostrar.
         </div>
       ) : (
-        <div className="space-y-3">
+        <motion.div
+          initial="hidden"
+          animate="show"
+          variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+          className="space-y-3"
+        >
           {lista.map((t) => {
             const servicio = servicios.find((s) => s.id === t.servicioId);
             return (
-              <article key={t.id} className="glass rounded-2xl p-5">
+              <motion.article
+                key={t.id}
+                layout
+                variants={{
+                  hidden: { opacity: 0, y: 8 },
+                  show: { opacity: 1, y: 0 },
+                }}
+                className="glass rounded-2xl p-5"
+              >
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -302,7 +345,7 @@ function TurnosTab({
                   <select
                     value={t.estado}
                     onChange={(e) =>
-                      cambiarEstado(t.id, e.target.value as TurnoEstado)
+                      updateTurno(t.id, { estado: e.target.value as TurnoEstado })
                     }
                     className="flex-1 rounded-xl bg-violet-950/60 border border-violet-300/20 px-3 py-2.5 text-sm text-violet-50"
                   >
@@ -312,27 +355,30 @@ function TurnosTab({
                     <option value="cancelado">Cancelado</option>
                   </select>
                   <button
-                    onClick={() => eliminar(t.id)}
+                    onClick={() => {
+                      if (confirm("¿Eliminar este turno?")) deleteTurno(t.id);
+                    }}
                     className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-200 hover:bg-rose-500/20"
                   >
                     Eliminar
                   </button>
                 </div>
-              </article>
+              </motion.article>
             );
           })}
-        </div>
+        </motion.div>
       )}
 
-      {showAgregar && (
-        <AgregarTurnoModal
-          servicios={servicios}
-          config={config}
-          turnos={turnos}
-          onSave={onChange}
-          onClose={() => setShowAgregar(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showAgregar && (
+          <AgregarTurnoModal
+            servicios={servicios}
+            config={config}
+            turnos={turnos}
+            onClose={() => setShowAgregar(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -353,189 +399,163 @@ function EstadoBadge({ estado }: { estado: TurnoEstado }) {
   );
 }
 
-/* ========== AGREGAR TURNO MODAL ========== */
-
 function AgregarTurnoModal({
   servicios,
   config,
   turnos,
-  onSave,
   onClose,
 }: {
   servicios: Servicio[];
   config: Config;
   turnos: Turno[];
-  onSave: () => void;
   onClose: () => void;
 }) {
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [servicioId, setServicioId] = useState(servicios[0]?.id || "");
-  const [modalidad, setModalidad] = useState<
-    "presencial" | "video" | "telefono"
-  >("video");
+  const [modalidad, setModalidad] = useState<Modalidad>("video");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
   const [consulta, setConsulta] = useState("");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const slotsDisponibles = useMemo(() => {
-    if (!fecha) return [];
-    if (!fechaEsValida(fecha, config)) return [];
+    if (!fecha || !fechaEsValida(fecha, config)) return [];
     const ocupados = turnos
       .filter((t) => t.fecha === fecha && t.estado !== "cancelado")
       .map((t) => t.hora);
     return generarSlots(fecha, config, ocupados);
   }, [fecha, config, turnos]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!nombre.trim() || !telefono.trim() || !servicioId || !fecha || !hora) {
       setError("Completá nombre, teléfono, fecha y hora.");
       return;
     }
-    storage.addTurno({
-      nombre: nombre.trim(),
-      telefono: telefono.trim(),
-      email: "",
-      servicioId,
-      fecha,
-      hora,
-      modalidad,
-      consulta: consulta.trim(),
-    });
-    onSave();
-    onClose();
+    setSaving(true);
+    try {
+      await addTurno({
+        nombre: nombre.trim(),
+        telefono: telefono.trim(),
+        email: "",
+        servicioId,
+        fecha,
+        hora,
+        modalidad,
+        consulta: consulta.trim(),
+      });
+      onClose();
+    } catch (e) {
+      console.error(e);
+      setError("No se pudo guardar.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto glass rounded-t-3xl sm:rounded-3xl p-6 bg-violet-950/90">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-display text-2xl text-violet-50">
-            Agregar turno
-          </h3>
-          <button
-            onClick={onClose}
-            className="h-10 w-10 rounded-full glass flex items-center justify-center text-violet-200 text-xl"
-          >
-            ×
-          </button>
-        </div>
-        <div className="space-y-4">
-          <input
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre del cliente *"
-            className={inputCls}
-          />
-          <input
-            type="tel"
-            value={telefono}
-            onChange={(e) => setTelefono(e.target.value)}
-            placeholder="Teléfono / WhatsApp *"
-            className={inputCls}
-          />
-          <select
-            value={servicioId}
-            onChange={(e) => setServicioId(e.target.value)}
-            className={inputCls}
-          >
-            {servicios.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}
-              </option>
-            ))}
-          </select>
+    <Modal onClose={onClose} title="Agregar turno">
+      <div className="space-y-4">
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          placeholder="Nombre del cliente *"
+          className={inputCls}
+        />
+        <input
+          type="tel"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value)}
+          placeholder="Teléfono / WhatsApp *"
+          className={inputCls}
+        />
+        <select
+          value={servicioId}
+          onChange={(e) => setServicioId(e.target.value)}
+          className={inputCls}
+        >
+          {servicios.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.nombre}
+            </option>
+          ))}
+        </select>
 
-          <div className="grid grid-cols-3 gap-2">
-            {(["presencial", "video", "telefono"] as const).map((m) => (
+        <div className="grid grid-cols-3 gap-2">
+          {(["presencial", "video", "telefono"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setModalidad(m)}
+              className={`py-3 rounded-xl text-sm capitalize transition-all ${
+                modalidad === m
+                  ? "bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white"
+                  : "glass text-violet-100"
+              }`}
+            >
+              {m === "video" ? "Video" : m === "telefono" ? "Teléfono" : "Presencial"}
+            </button>
+          ))}
+        </div>
+
+        <input
+          type="date"
+          value={fecha}
+          onChange={(e) => {
+            setFecha(e.target.value);
+            setHora("");
+          }}
+          className={inputCls}
+        />
+
+        {fecha && slotsDisponibles.length > 0 && (
+          <div className="grid grid-cols-4 gap-2">
+            {slotsDisponibles.map((s) => (
               <button
-                key={m}
+                key={s}
                 type="button"
-                onClick={() => setModalidad(m)}
-                className={`py-3 rounded-xl text-sm capitalize transition-all ${
-                  modalidad === m
+                onClick={() => setHora(s)}
+                className={`py-3 rounded-xl text-sm transition-all ${
+                  hora === s
                     ? "bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white"
                     : "glass text-violet-100"
                 }`}
               >
-                {m === "video"
-                  ? "Video"
-                  : m === "telefono"
-                    ? "Teléfono"
-                    : "Presencial"}
+                {s}
               </button>
             ))}
           </div>
+        )}
+        {fecha && slotsDisponibles.length === 0 && (
+          <p className="text-violet-300/70 text-sm italic">
+            Sin horarios disponibles para esa fecha.
+          </p>
+        )}
 
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) => {
-              setFecha(e.target.value);
-              setHora("");
-            }}
-            className={inputCls}
-          />
+        <textarea
+          value={consulta}
+          onChange={(e) => setConsulta(e.target.value)}
+          placeholder="Nota (opcional)"
+          rows={2}
+          className={inputCls + " resize-none"}
+        />
 
-          {fecha && slotsDisponibles.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
-              {slotsDisponibles.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setHora(s)}
-                  className={`py-3 rounded-xl text-sm transition-all ${
-                    hora === s
-                      ? "bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white"
-                      : "glass text-violet-100"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
-          {fecha && slotsDisponibles.length === 0 && (
-            <p className="text-violet-300/70 text-sm italic">
-              Sin horarios disponibles para esa fecha.
-            </p>
-          )}
-
-          <textarea
-            value={consulta}
-            onChange={(e) => setConsulta(e.target.value)}
-            placeholder="Nota (opcional)"
-            rows={2}
-            className={inputCls + " resize-none"}
-          />
-
-          {error && (
-            <p className="text-rose-300 text-sm bg-rose-500/10 border border-rose-400/30 rounded-xl p-3">
-              {error}
-            </p>
-          )}
-        </div>
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3.5 rounded-full glass text-violet-100 text-base"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium text-base"
-          >
-            Guardar
-          </button>
-        </div>
+        {error && (
+          <p className="text-rose-300 text-sm bg-rose-500/10 border border-rose-400/30 rounded-xl p-3">
+            {error}
+          </p>
+        )}
       </div>
-    </div>
+      <ModalFooter
+        onCancel={onClose}
+        onSave={handleSave}
+        saveLabel={saving ? "Guardando..." : "Guardar"}
+        saving={saving}
+      />
+    </Modal>
   );
 }
-
-/* ========== STATS ========== */
 
 function StatsTab({
   turnos,
@@ -570,7 +590,12 @@ function StatsTab({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 grid-cols-2">
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.06 } } }}
+        className="grid gap-3 grid-cols-2"
+      >
         <KPI label="Total" value={total.toString()} icon="✦" />
         <KPI label="Pendientes" value={pendientes.toString()} icon="◷" />
         <KPI label="Confirmados" value={confirmados.toString()} icon="✓" />
@@ -580,16 +605,14 @@ function StatsTab({
           icon="✺"
           small
         />
-      </div>
+      </motion.div>
 
       <div className="glass rounded-3xl p-5">
         <h3 className="font-display text-xl text-violet-50 mb-4">
           Próximos turnos
         </h3>
         {proximos.length === 0 ? (
-          <p className="text-violet-200/70 text-sm">
-            No hay próximos turnos.
-          </p>
+          <p className="text-violet-200/70 text-sm">No hay próximos turnos.</p>
         ) : (
           <ul className="space-y-2.5">
             {proximos.map((t) => (
@@ -622,9 +645,11 @@ function StatsTab({
                 <span className="text-violet-300/70">{p.cantidad}</span>
               </div>
               <div className="h-2.5 rounded-full bg-violet-950/60 overflow-hidden">
-                <div
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(p.cantidad / maxCant) * 100}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
                   className="h-full bg-gradient-to-r from-violet-400 to-fuchsia-500"
-                  style={{ width: `${(p.cantidad / maxCant) * 100}%` }}
                 />
               </div>
             </li>
@@ -647,7 +672,13 @@ function KPI({
   small?: boolean;
 }) {
   return (
-    <div className="glass rounded-2xl p-4">
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 12 },
+        show: { opacity: 1, y: 0 },
+      }}
+      className="glass rounded-2xl p-4"
+    >
       <div className="text-gold text-xl">{icon}</div>
       <div
         className={`mt-1.5 font-display text-violet-50 ${small ? "text-lg" : "text-2xl"}`}
@@ -657,33 +688,23 @@ function KPI({
       <div className="text-[10px] uppercase tracking-wider text-violet-300/70 mt-0.5">
         {label}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-/* ========== SERVICIOS ========== */
-
-function ServiciosTab({
-  servicios,
-  onChange,
-}: {
-  servicios: Servicio[];
-  onChange: () => void;
-}) {
+function ServiciosTab({ servicios }: { servicios: Servicio[] }) {
   const [editando, setEditando] = useState<Servicio | null>(null);
 
-  function save(s: Servicio) {
+  async function save(s: Servicio) {
     const lista = servicios.some((x) => x.id === s.id)
       ? servicios.map((x) => (x.id === s.id ? s : x))
       : [...servicios, s];
-    storage.setServicios(lista);
+    await setServicios(lista);
     setEditando(null);
-    onChange();
   }
-  function eliminar(id: string) {
+  async function eliminar(id: string) {
     if (confirm("¿Eliminar esta lectura?")) {
-      storage.setServicios(servicios.filter((s) => s.id !== id));
-      onChange();
+      await setServicios(servicios.filter((s) => s.id !== id));
     }
   }
 
@@ -704,14 +725,25 @@ function ServiciosTab({
         + Nueva lectura
       </button>
 
-      <div className="space-y-3">
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+        className="space-y-3"
+      >
         {servicios.map((s) => (
-          <div key={s.id} className="glass rounded-2xl p-5">
+          <motion.div
+            key={s.id}
+            layout
+            variants={{
+              hidden: { opacity: 0, y: 8 },
+              show: { opacity: 1, y: 0 },
+            }}
+            className="glass rounded-2xl p-5"
+          >
             <div className="flex justify-between items-start gap-3">
               <div>
-                <h3 className="font-display text-xl text-violet-50">
-                  {s.nombre}
-                </h3>
+                <h3 className="font-display text-xl text-violet-50">{s.nombre}</h3>
                 <p className="text-xs text-violet-300/70 mt-0.5">
                   {s.duracionMin} min
                 </p>
@@ -735,17 +767,19 @@ function ServiciosTab({
                 Eliminar
               </button>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      {editando && (
-        <ServicioModal
-          servicio={editando}
-          onClose={() => setEditando(null)}
-          onSave={save}
-        />
-      )}
+      <AnimatePresence>
+        {editando && (
+          <ServicioModal
+            servicio={editando}
+            onClose={() => setEditando(null)}
+            onSave={save}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -756,106 +790,96 @@ function ServicioModal({
   onClose,
 }: {
   servicio: Servicio;
-  onSave: (s: Servicio) => void;
+  onSave: (s: Servicio) => Promise<void>;
   onClose: () => void;
 }) {
   const [s, setS] = useState(servicio);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    await onSave(s);
+    setSaving(false);
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-md glass rounded-t-3xl sm:rounded-3xl p-6 bg-violet-950/90">
-        <h3 className="font-display text-2xl text-violet-50 mb-4">
-          {servicio.nombre ? "Editar lectura" : "Nueva lectura"}
-        </h3>
-        <div className="space-y-3">
-          <input
-            value={s.nombre}
-            onChange={(e) => setS({ ...s, nombre: e.target.value })}
-            placeholder="Nombre"
-            className={inputCls}
-          />
-          <textarea
-            value={s.descripcion}
-            onChange={(e) => setS({ ...s, descripcion: e.target.value })}
-            placeholder="Descripción"
-            rows={3}
-            className={inputCls + " resize-none"}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-xs uppercase text-violet-300/80 mb-1 block">
-                Duración (min)
-              </span>
-              <input
-                type="number"
-                value={s.duracionMin}
-                onChange={(e) =>
-                  setS({ ...s, duracionMin: Number(e.target.value) })
-                }
-                className={inputCls}
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs uppercase text-violet-300/80 mb-1 block">
-                Precio
-              </span>
-              <input
-                type="number"
-                value={s.precio}
-                onChange={(e) =>
-                  setS({ ...s, precio: Number(e.target.value) })
-                }
-                className={inputCls}
-              />
-            </label>
-          </div>
-        </div>
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3.5 rounded-full glass text-violet-100 text-base"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={() => onSave(s)}
-            className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium text-base"
-          >
-            Guardar
-          </button>
+    <Modal
+      onClose={onClose}
+      title={servicio.nombre ? "Editar lectura" : "Nueva lectura"}
+    >
+      <div className="space-y-3">
+        <input
+          value={s.nombre}
+          onChange={(e) => setS({ ...s, nombre: e.target.value })}
+          placeholder="Nombre"
+          className={inputCls}
+        />
+        <textarea
+          value={s.descripcion}
+          onChange={(e) => setS({ ...s, descripcion: e.target.value })}
+          placeholder="Descripción"
+          rows={3}
+          className={inputCls + " resize-none"}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-xs uppercase text-violet-300/80 mb-1 block">
+              Duración (min)
+            </span>
+            <input
+              type="number"
+              value={s.duracionMin}
+              onChange={(e) =>
+                setS({ ...s, duracionMin: Number(e.target.value) })
+              }
+              className={inputCls}
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs uppercase text-violet-300/80 mb-1 block">
+              Precio
+            </span>
+            <input
+              type="number"
+              value={s.precio}
+              onChange={(e) => setS({ ...s, precio: Number(e.target.value) })}
+              className={inputCls}
+            />
+          </label>
         </div>
       </div>
-    </div>
+      <ModalFooter
+        onCancel={onClose}
+        onSave={handleSave}
+        saveLabel={saving ? "Guardando..." : "Guardar"}
+        saving={saving}
+      />
+    </Modal>
   );
 }
 
-/* ========== CONFIG ========== */
-
-function ConfigTab({
-  config,
-  onChange,
-}: {
-  config: Config;
-  onChange: () => void;
-}) {
+function ConfigTab({ config }: { config: Config }) {
   const [c, setC] = useState<Config>(config);
+  const [prevConfig, setPrevConfig] = useState(config);
   const [diaBloqueo, setDiaBloqueo] = useState("");
   const [diaSlotBloqueo, setDiaSlotBloqueo] = useState("");
   const [guardado, setGuardado] = useState(false);
 
-  useEffect(() => setC(config), [config]);
+  if (config !== prevConfig) {
+    setPrevConfig(config);
+    setC(config);
+  }
 
-  function save() {
-    storage.setConfig(c);
-    onChange();
+  async function save() {
+    await setConfig(c);
     setGuardado(true);
     setTimeout(() => setGuardado(false), 2000);
   }
 
-  function toggleVacaciones() {
+  async function toggleVacaciones() {
     const updated = { ...c, modoVacaciones: !c.modoVacaciones };
     setC(updated);
-    storage.setConfig(updated);
-    onChange();
+    await setConfig(updated);
   }
 
   function toggleDia(d: number) {
@@ -866,7 +890,6 @@ function ConfigTab({
         : [...prev.diasLaborables, d].sort(),
     }));
   }
-
   function toggleModalidad(m: string) {
     setC((prev) => ({
       ...prev,
@@ -875,7 +898,6 @@ function ConfigTab({
         : [...(prev.modalidadesBloqueadas || []), m],
     }));
   }
-
   function toggleSlotBloqueo(slot: string) {
     if (!diaSlotBloqueo) return;
     const key = `${diaSlotBloqueo}|${slot}`;
@@ -888,19 +910,17 @@ function ConfigTab({
   }
 
   const todosSlots = useMemo(() => generarTodosSlots(c), [c]);
-
-  const slotsDelDia = useMemo(() => {
-    if (!diaSlotBloqueo) return [];
-    return todosSlots;
-  }, [diaSlotBloqueo, todosSlots]);
+  const slotsDelDia = useMemo(
+    () => (diaSlotBloqueo ? todosSlots : []),
+    [diaSlotBloqueo, todosSlots],
+  );
 
   const dias = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
   const diasDisponibilidadOpciones = [1, 3, 5, 7, 14, 21, 30];
 
   return (
     <div className="space-y-5">
-      {/* MODO VACACIONES */}
-      <div className="glass rounded-2xl p-5">
+      <Card>
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="font-display text-xl text-violet-50">
@@ -921,23 +941,16 @@ function ConfigTab({
                 : "bg-violet-950/60 border border-violet-300/20"
             }`}
           >
-            <span
-              className={`inline-block h-7 w-7 rounded-full bg-white shadow-md transition-transform ${
-                c.modoVacaciones ? "translate-x-8" : "translate-x-1"
-              }`}
+            <motion.span
+              animate={{ x: c.modoVacaciones ? 32 : 4 }}
+              transition={{ type: "spring", stiffness: 400, damping: 28 }}
+              className="inline-block h-7 w-7 rounded-full bg-white shadow-md"
             />
           </button>
         </div>
-      </div>
+      </Card>
 
-      {/* DÍAS DE DISPONIBILIDAD */}
-      <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-xl text-violet-50 mb-3">
-          Días de disponibilidad
-        </h3>
-        <p className="text-sm text-violet-200/70 mb-3">
-          Cuántos días a futuro pueden reservar
-        </p>
+      <Card title="Días de disponibilidad" subtitle="Cuántos días a futuro pueden reservar">
         <div className="flex gap-2 flex-wrap">
           {diasDisponibilidadOpciones.map((d) => {
             const active = c.diasDisponibilidad === d;
@@ -956,13 +969,9 @@ function ConfigTab({
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* DÍAS LABORABLES */}
-      <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-xl text-violet-50 mb-3">
-          Días laborables
-        </h3>
+      <Card title="Días laborables">
         <div className="flex gap-2 flex-wrap">
           {dias.map((d, i) => {
             const active = c.diasLaborables.includes(i);
@@ -981,34 +990,20 @@ function ConfigTab({
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* HORARIOS */}
-      <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-xl text-violet-50 mb-3">Horarios</h3>
+      <Card title="Horarios">
         <div className="space-y-3">
-          <label className="block">
-            <span className="text-xs uppercase text-violet-300/80 mb-1 block">
-              Hora inicio
-            </span>
-            <input
-              type="time"
-              value={c.horaInicio}
-              onChange={(e) => setC({ ...c, horaInicio: e.target.value })}
-              className={inputCls}
-            />
-          </label>
-          <label className="block">
-            <span className="text-xs uppercase text-violet-300/80 mb-1 block">
-              Hora fin
-            </span>
-            <input
-              type="time"
-              value={c.horaFin}
-              onChange={(e) => setC({ ...c, horaFin: e.target.value })}
-              className={inputCls}
-            />
-          </label>
+          <TimeField
+            label="Hora inicio"
+            value={c.horaInicio}
+            onChange={(v) => setC({ ...c, horaInicio: v })}
+          />
+          <TimeField
+            label="Hora fin"
+            value={c.horaFin}
+            onChange={(v) => setC({ ...c, horaFin: v })}
+          />
           <label className="block">
             <span className="text-xs uppercase text-violet-300/80 mb-1 block">
               Intervalo (minutos)
@@ -1025,16 +1020,9 @@ function ConfigTab({
             />
           </label>
         </div>
-      </div>
+      </Card>
 
-      {/* MODALIDADES */}
-      <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-xl text-violet-50 mb-3">
-          Modalidades
-        </h3>
-        <p className="text-sm text-violet-200/70 mb-3">
-          Desactivá las que no querés ofrecer
-        </p>
+      <Card title="Modalidades" subtitle="Desactivá las que no querés ofrecer">
         <div className="space-y-2">
           {[
             { id: "presencial", label: "Presencial" },
@@ -1060,26 +1048,19 @@ function ConfigTab({
                       : "bg-gradient-to-r from-violet-400 to-fuchsia-500"
                   }`}
                 >
-                  <span
-                    className={`inline-block h-5 w-5 rounded-full bg-white shadow-md transition-transform ${
-                      bloqueada ? "translate-x-1" : "translate-x-6"
-                    }`}
+                  <motion.span
+                    animate={{ x: bloqueada ? 4 : 24 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 28 }}
+                    className="inline-block h-5 w-5 rounded-full bg-white shadow-md"
                   />
                 </span>
               </button>
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* DÍAS BLOQUEADOS */}
-      <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-xl text-violet-50 mb-3">
-          Días bloqueados
-        </h3>
-        <p className="text-sm text-violet-200/70 mb-3">
-          Bloqueá días específicos
-        </p>
+      <Card title="Días bloqueados" subtitle="Bloqueá días específicos">
         <div className="flex gap-2">
           <input
             type="date"
@@ -1125,16 +1106,9 @@ function ConfigTab({
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* HORARIOS BLOQUEADOS */}
-      <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-xl text-violet-50 mb-3">
-          Horarios bloqueados
-        </h3>
-        <p className="text-sm text-violet-200/70 mb-3">
-          Bloqueá horarios específicos de un día
-        </p>
+      <Card title="Horarios bloqueados" subtitle="Bloqueá horarios específicos de un día">
         <input
           type="date"
           value={diaSlotBloqueo}
@@ -1167,11 +1141,11 @@ function ConfigTab({
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* GUARDAR */}
-      <button
+      <motion.button
         onClick={save}
+        whileTap={{ scale: 0.98 }}
         className={`w-full py-4 rounded-2xl font-medium text-base shadow-lg transition-all ${
           guardado
             ? "bg-emerald-500 text-white shadow-emerald-500/30"
@@ -1179,6 +1153,121 @@ function ConfigTab({
         }`}
       >
         {guardado ? "✓ Guardado" : "Guardar configuración"}
+      </motion.button>
+    </div>
+  );
+}
+
+function Card({
+  title,
+  subtitle,
+  children,
+}: {
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="glass rounded-2xl p-5">
+      {title && (
+        <h3 className="font-display text-xl text-violet-50 mb-3">{title}</h3>
+      )}
+      {subtitle && (
+        <p className="text-sm text-violet-200/70 -mt-2 mb-3">{subtitle}</p>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function TimeField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs uppercase text-violet-300/80 mb-1 block">
+        {label}
+      </span>
+      <input
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={inputCls}
+      />
+    </label>
+  );
+}
+
+function Modal({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 320, damping: 32 }}
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto glass rounded-t-3xl sm:rounded-3xl p-6 bg-violet-950/90"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-display text-2xl text-violet-50">{title}</h3>
+          <button
+            onClick={onClose}
+            className="h-10 w-10 rounded-full glass flex items-center justify-center text-violet-200 text-xl"
+          >
+            ×
+          </button>
+        </div>
+        {children}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ModalFooter({
+  onCancel,
+  onSave,
+  saveLabel,
+  saving,
+}: {
+  onCancel: () => void;
+  onSave: () => void;
+  saveLabel: string;
+  saving?: boolean;
+}) {
+  return (
+    <div className="mt-6 flex gap-3">
+      <button
+        onClick={onCancel}
+        className="flex-1 py-3.5 rounded-full glass text-violet-100 text-base"
+      >
+        Cancelar
+      </button>
+      <button
+        onClick={onSave}
+        disabled={saving}
+        className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-violet-400 to-fuchsia-500 text-white font-medium text-base disabled:opacity-50"
+      >
+        {saveLabel}
       </button>
     </div>
   );

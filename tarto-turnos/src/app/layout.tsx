@@ -3,6 +3,7 @@ import { Geist, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/nav-bar";
 import { Footer } from "@/components/footer";
+import { Splash } from "@/components/splash";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,15 +31,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="es"
       className={`${geistSans.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col relative overflow-x-hidden">
+        <Splash />
         <StarsBackdrop />
         <NavBar />
         <main className="flex-1 flex flex-col relative z-10">{children}</main>
@@ -49,14 +49,12 @@ export default function RootLayout({
 }
 
 function StarsBackdrop() {
-  // Deterministic star positions to avoid hydration mismatch
-  const stars = Array.from({ length: 60 }, (_, i) => {
-    const x = (i * 73) % 100;
-    const y = (i * 137) % 100;
-    const size = (i % 3) + 1;
-    const delay = (i % 7) * 0.4;
-    return { x, y, size, delay };
-  });
+  const stars = Array.from({ length: 60 }, (_, i) => ({
+    x: (i * 73) % 100,
+    y: (i * 137) % 100,
+    size: (i % 3) + 1,
+    delay: (i % 7) * 0.4,
+  }));
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <div className="absolute inset-0 opacity-60">
